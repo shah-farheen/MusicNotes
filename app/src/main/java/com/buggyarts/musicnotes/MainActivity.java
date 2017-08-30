@@ -171,6 +171,10 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
 
     private void resetPlayback(){
         if(editMusicNotes.getText().toString().equals("")) return;
+        if(mediaPlayer != null){
+            if(mediaPlayer.isPlaying()) mediaPlayer.stop();
+            mediaPlayer.reset();
+        }
         i = -1;
         enteredNotes.clear();
         textShowNotes.setText("");
@@ -180,26 +184,24 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
 
     private void playNote(int pos){
         if(mediaPlayer != null) mediaPlayer.reset();
-
-        if(enteredNotes.get(pos).equals(DOT)){
-            uiHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    playNext();
-                }
-            }, 100);
+        try {
+            mediaPlayer = MediaPlayer.create(mContext,
+                    getResources().getIdentifier(enteredNotes.get(pos), "raw", getPackageName()));
+            mediaPlayer.start();
+//            mediaPlayer.setOnCompletionListener(this);
+        } catch (Resources.NotFoundException e){
+            Toast.makeText(getApplicationContext(), "Invalid Note entered: "+enteredNotes.get(pos), Toast.LENGTH_SHORT).show();
+//            playNext();
         }
-        else {
-            try {
-                mediaPlayer = MediaPlayer.create(mContext,
-                        getResources().getIdentifier(enteredNotes.get(pos), "raw", getPackageName()));
-                mediaPlayer.start();
-                mediaPlayer.setOnCompletionListener(this);
-            } catch (Resources.NotFoundException e){
-                Toast.makeText(getApplicationContext(), "Invalid Note entered", Toast.LENGTH_SHORT).show();
+    }
+
+    private void playDot(){
+        uiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
                 playNext();
             }
-        }
+        }, 100);
     }
 
     @Override
@@ -210,9 +212,15 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
     private void playNext(){
         if(shouldPause) return;
         i += 1;
-        if(i < enteredNotes.size()){
+        while(i < enteredNotes.size() && !enteredNotes.get(i).equals(DOT)){
             textShowNotes.setText(String.format("%s%s ", textShowNotes.getText(), enteredNotes.get(i)));
             playNote(i);
+            i++;
+        }
+
+        if(i < enteredNotes.size() && enteredNotes.get(i).equals(DOT)){
+            textShowNotes.setText(String.format("%s%s ", textShowNotes.getText(), enteredNotes.get(i)));
+            playDot();
         }
     }
 }
